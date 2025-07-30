@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
 
 interface AboutData {
+  id?: number;
   title: string;
-  description: string;
-  mission: string;
-  vision: string;
+  description?: string;
+  image?: string | File;
 }
 
 interface AboutModalProps {
@@ -15,7 +15,23 @@ interface AboutModalProps {
 }
 
 const AboutModal: React.FC<AboutModalProps> = ({ data, onSave, onClose }) => {
-  const [formData, setFormData] = useState(data);
+  const [formData, setFormData] = useState<AboutData>(data);
+  const [imagePreview, setImagePreview] = useState<string>(
+    data.image instanceof File 
+      ? URL.createObjectURL(data.image) 
+      : data.image 
+        ? `http://127.0.0.1:8000/storage/${data.image}` 
+        : ''
+  );
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewURL = URL.createObjectURL(file);
+      setImagePreview(previewURL);
+      setFormData({ ...formData, image: file });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,34 +63,26 @@ const AboutModal: React.FC<AboutModalProps> = ({ data, onSave, onClose }) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mission Statement</label>
-            <textarea
-              value={formData.mission}
-              onChange={(e) => setFormData({ ...formData, mission: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Vision Statement</label>
-            <textarea
-              value={formData.vision}
-              onChange={(e) => setFormData({ ...formData, vision: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-2">Image Upload</label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {imagePreview && (
+                <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4 pt-6 border-t">

@@ -25,6 +25,13 @@ import AboutModal from './modals/AboutModal';
 import ContactModal from './modals/ContactModal';
 import ContactFormModal from './modals/ContactFormModal';
 
+interface About {
+  id: number;
+  title: string;
+  description?: string;
+  image?: string;
+}
+
 interface DashboardProps {
   contentData: ContentData;
   updateContent: (data: ContentData) => void;
@@ -46,43 +53,50 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
   const [services, setServices] = useState<any[]>([]);
   const [team, setTeam] = useState<any[]>([]);
+  const [abouts, setAbouts] = useState<About[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState<{ [key: string]: number }>({ services: 0, team: 0 });
+  const [retryCount, setRetryCount] = useState<{ [key: string]: number }>({ services: 0, team: 0, abouts: 0 });
   const maxRetries = 3;
 
   // Memoized fetch function to avoid redefinition
-  const fetchData = useCallback(async (type: 'services' | 'team') => {
-    const endpoint = type === 'services' ? 'services' : 'teams/list';
-    if ((type === 'services' ? services.length : team.length) > 0 || retryCount[type] >= maxRetries) return;
+  const fetchData = useCallback(async (type: 'services' | 'team' | 'abouts') => {
+    const endpoint = type === 'services' ? 'services' : type === 'team' ? 'teams/list' : 'abouts';
+    if ((type === 'services' ? services.length : type === 'team' ? team.length : abouts.length) > 0 || retryCount[type] >= maxRetries) return;
 
     try {
       setLoading(true);
       const response = await axios.get(`http://127.0.0.1:8000/api/${endpoint}`, {
         timeout: 5000,
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`, // Assuming authentication is required
+          Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
         },
       });
       setLoading(false);
       if (type === 'services') {
         setServices(response.data);
         updateContent({ ...contentData, services: response.data });
-      } else {
-        // Ensure image URLs are absolute
+      } else if (type === 'team') {
         const updatedTeam = response.data.map((member: any) => ({
           ...member,
           image: member.image ? `http://127.0.0.1:8000/storage/${member.image}` : '',
         }));
         setTeam(updatedTeam);
         updateContent({ ...contentData, team: updatedTeam });
+      } else if (type === 'abouts') {
+        const updatedAbouts = response.data.map((about: About) => ({
+          ...about,
+          image: about.image ? `http://127.0.0.1:8000/storage/${about.image}` : '',
+        }));
+        setAbouts(updatedAbouts);
+        updateContent({ ...contentData, about: updatedAbouts[0] || contentData.about });
       }
       setError(null);
       setRetryCount(prev => ({ ...prev, [type]: 0 }));
     } catch (err: any) {
       setLoading(false);
       if (err.response?.status === 429 && retryCount[type] < maxRetries) {
-        const delay = Math.pow(2, retryCount[type]) * 2000; // Increased delay: 2s, 4s, 8s
+        const delay = Math.pow(2, retryCount[type]) * 2000;
         console.log(`Rate limit hit for ${type}. Retrying in ${delay / 1000} seconds...`);
         setTimeout(() => {
           setRetryCount(prev => ({ ...prev, [type]: prev[type] + 1 }));
@@ -93,11 +107,11 @@ const Dashboard: React.FC<DashboardProps> = ({
         console.error(`Error fetching ${type}:`, err);
       }
     }
-  }, [services.length, team.length, retryCount, contentData, updateContent]);
+  }, [services.length, team.length, abouts.length, retryCount, contentData, updateContent]);
 
   // Fetch data when activeTab changes
   useEffect(() => {
-    if (activeTab === 'services' || activeTab === 'team') {
+    if (activeTab === 'services' || activeTab === 'team' || activeTab === 'about') {
       fetchData(activeTab);
     }
   }, [activeTab, fetchData]);
@@ -112,7 +126,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     setShowModal(type);
   };
 
-  const handleDelete = async (type: 'services' | 'team', id: string) => {
+  const handleDelete = async (type: 'services' | 'team' | 'abouts', id: string) => {
     try {
       if (type === 'services') {
         await axios.delete(`http://127.0.0.1:8000/api/services/${id}`, {
@@ -126,6 +140,13 @@ const Dashboard: React.FC<DashboardProps> = ({
         });
         setTeam(team.filter(member => member.id !== id));
         updateContent({ ...contentData, team: team.filter(member => member.id !== id) });
+      } else if (type === 'abouts') {
+        await axios.delete(`http://127.0.0.1:8000/api/abouts/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
+        });
+        const updatedAbouts = abouts.filter(about => about.id !== parseInt(id));
+        setAbouts(updatedAbouts);
+        updateContent({ ...contentData, about: updatedAbouts[0] || contentData.about });
       }
     } catch (err) {
       setError(`Failed to delete ${type.slice(0, -1)}`);
@@ -373,28 +394,51 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <h2 className="text-2xl font-bold">About Information</h2>
                 <button
                   onClick={() => handleEdit('about')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                 >
-                  <Edit3 className="w-4 h-4" />
-                  <span>Edit</span>
+                  <Plus className="w-4 h-4" />
+                  <span>Add About</span>
                 </button>
               </div>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">{contentData.about.title}</h3>
-                  <p className="text-gray-700">{contentData.about.description}</p>
-                </div>
+              {loading && <p>Loading about information...</p>}
+              {error && <p className="text-red-600">{error}</p>}
+              {!loading && !error && (
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="p-6 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-600 mb-2">Mission</h4>
-                    <p className="text-gray-700">{contentData.about.mission}</p>
-                  </div>
-                  <div className="p-6 bg-emerald-50 rounded-lg">
-                    <h4 className="font-semibold text-emerald-600 mb-2">Vision</h4>
-                    <p className="text-gray-700">{contentData.about.vision}</p>
-                  </div>
+                  {(abouts ?? []).map((about) => (
+                    <div key={about.id} className="border border-gray-200 rounded-lg p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-semibold">{about.title}</h3>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEdit('about', about)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete('abouts', about.id.toString())}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      {about.image && (
+                        <img
+                          src={about.image}
+                          alt={about.title}
+                          className="w-full h-48 object-cover rounded-lg mb-4"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            console.error(`Failed to load image for ${about.title}`);
+                          }}
+                        />
+                      )}
+                      <p className="text-gray-600">{about.description}</p>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -609,17 +653,29 @@ const Dashboard: React.FC<DashboardProps> = ({
               let updatedTeam;
               let response;
               if (editingItem) {
-                // Update existing team member
-                response = await axios.post(`http://127.0.0.1:8000/api/teams/${editingItem.id}/update`, {
-                  name: data.name,
-                  position: data.position,
-                  image: data.image instanceof File ? data.image : null,
-                  social_links: data.social_links ? {
-                    twitter: data.social_links.twitter || '',
-                    linkedin: data.social_links.linkedin || '',
-                    facebook: data.social_links.facebook || '',
-                  } : {},
-                }, {
+                const formData = new FormData();
+                formData.append('name', data.name);
+                formData.append('position', data.position);
+                if (data.image instanceof File) {
+                  formData.append('image', data.image);
+                }
+                if (data.social_links) {
+                  const socialLinksArray = [];
+                  if (data.social_links.twitter && data.social_links.twitter.trim()) {
+                    socialLinksArray.push({ key: 'twitter', value: data.social_links.twitter.trim() });
+                  }
+                  if (data.social_links.linkedin && data.social_links.linkedin.trim()) {
+                    socialLinksArray.push({ key: 'linkedin', value: data.social_links.linkedin.trim() });
+                  }
+                  if (data.social_links.facebook && data.social_links.facebook.trim()) {
+                    socialLinksArray.push({ key: 'facebook', value: data.social_links.facebook.trim() });
+                  }
+                  socialLinksArray.forEach((link, index) => {
+                    formData.append(`social_links[${index}][key]`, link.key);
+                    formData.append(`social_links[${index}][value]`, link.value);
+                  });
+                }
+                response = await axios.post(`http://127.0.0.1:8000/api/teams/${editingItem.id}/update`, formData, {
                   headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
@@ -627,7 +683,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                 });
                 updatedTeam = team.map(t => t.id === editingItem.id ? { ...response.data, image: `http://127.0.0.1:8000/storage/${response.data.image}` } : t);
               } else {
-                // Create new team member
                 const formData = new FormData();
                 formData.append('name', data.name);
                 formData.append('position', data.position);
@@ -675,12 +730,54 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {showModal === 'about' && (
         <AboutModal
-          data={contentData.about}
-          onSave={(data) => {
-            updateContent({ ...contentData, about: data });
-            setShowModal(null);
+          data={editingItem || { title: '', description: '', image: '' }}
+          onSave={async (data) => {
+            try {
+              let updatedAbouts;
+              let response;
+              if (editingItem) {
+                const formData = new FormData();
+                formData.append('title', data.title);
+                formData.append('description', data.description || '');
+                if (data.image instanceof File) {
+                  formData.append('image', data.image);
+                }
+                response = await axios.put(`http://127.0.0.1:8000/api/abouts/${editingItem.id}`, formData, {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+                  },
+                });
+                updatedAbouts = abouts.map(a => a.id === editingItem.id ? { ...response.data, image: response.data.image ? `http://127.0.0.1:8000/storage/${response.data.image}` : '' } : a);
+              } else {
+                const formData = new FormData();
+                formData.append('title', data.title);
+                formData.append('description', data.description || '');
+                if (data.image instanceof File) {
+                  formData.append('image', data.image);
+                }
+                response = await axios.post('http://127.0.0.1:8000/api/abouts', formData, {
+                  headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+                  },
+                });
+                updatedAbouts = [...abouts, { ...response.data, image: response.data.image ? `http://127.0.0.1:8000/storage/${response.data.image}` : '' }];
+              }
+              setAbouts(updatedAbouts);
+              updateContent({ ...contentData, about: updatedAbouts[0] || contentData.about });
+            } catch (err) {
+              setError('Failed to save about information');
+              console.error('Error saving about:', err);
+            } finally {
+              setShowModal(null);
+              setEditingItem(null);
+            }
           }}
-          onClose={() => setShowModal(null)}
+          onClose={() => {
+            setShowModal(null);
+            setEditingItem(null);
+          }}
         />
       )}
 

@@ -50,71 +50,63 @@ const TeamModal: React.FC<TeamModalProps> = ({ data, onSave, onClose }) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrors({});
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setErrors({});
 
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('position', formData.position);
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
-      }
-
-      // Prepare social_links as an array of objects using FormData array syntax
-      const socialLinks: { key: string; value: string }[] = [];
-      if (formData.social_links?.twitter && formData.social_links.twitter.trim()) {
-        socialLinks.push({ key: 'twitter', value: formData.social_links.twitter.trim() });
-      }
-      if (formData.social_links?.linkedin && formData.social_links.linkedin.trim()) {
-        socialLinks.push({ key: 'linkedin', value: formData.social_links.linkedin.trim() });
-      }
-      if (formData.social_links?.facebook && formData.social_links.facebook.trim()) {
-        socialLinks.push({ key: 'facebook', value: formData.social_links.facebook.trim() });
-      }
-
-      socialLinks.forEach((link, index) => {
-        formDataToSend.append(`social_links[${index}][key]`, link.key);
-        formDataToSend.append(`social_links[${index}][value]`, link.value);
-      });
-
-      let response;
-      if (data?.id) {
-        // Update existing team member
-        formDataToSend.append('_method', 'PUT'); // Laravel expects _method for PUT requests with FormData
-        response = await axios.post(`http://127.0.0.1:8000/api/teams/${data.id}/update`, formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      } else {
-        // Create new team member
-        if (!imageFile) {
-          setErrors({ image: 'Image is required for new team members' });
-          setLoading(false);
-          return;
-        }
-        response = await axios.post('http://127.0.0.1:8000/api/teams/create', formDataToSend, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      }
-      onSave(response.data);
-    } catch (err: any) {
-      if (err.response?.status === 422) {
-        const validationErrors = err.response.data.errors;
-        const formattedErrors: { [key: string]: string } = {};
-        Object.keys(validationErrors).forEach(key => {
-          formattedErrors[key] = validationErrors[key][0]; // Take first error message
-        });
-        setErrors(formattedErrors);
-      } else {
-        setErrors({ general: `Failed to save team member: ${err.message}` });
-      }
-      console.error('Error saving team member:', err);
-    } finally {
-      setLoading(false);
+  try {
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('position', formData.position);
+    if (imageFile) {
+      formDataToSend.append('image', imageFile);
     }
-  };
+
+    // Send social_links as an associative array, not array of objects
+    if (formData.social_links?.twitter && formData.social_links.twitter.trim()) {
+      formDataToSend.append('social_links[twitter]', formData.social_links.twitter.trim());
+    }
+    if (formData.social_links?.linkedin && formData.social_links.linkedin.trim()) {
+      formDataToSend.append('social_links[linkedin]', formData.social_links.linkedin.trim());
+    }
+    if (formData.social_links?.facebook && formData.social_links.facebook.trim()) {
+      formDataToSend.append('social_links[facebook]', formData.social_links.facebook.trim());
+    }
+
+    let response;
+    if (data?.id) {
+      formDataToSend.append('_method', 'PUT');
+      response = await axios.post(`http://127.0.0.1:8000/api/teams/${data.id}/update`, formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    } else {
+      if (!imageFile) {
+        setErrors({ image: 'Image is required for new team members' });
+        setLoading(false);
+        return;
+      }
+      response = await axios.post('http://127.0.0.1:8000/api/teams/create', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    onSave(response.data);
+  } catch (err: any) {
+    if (err.response?.status === 422) {
+      const validationErrors = err.response.data.errors;
+      const formattedErrors: { [key: string]: string } = {};
+      Object.keys(validationErrors).forEach(key => {
+        formattedErrors[key] = validationErrors[key][0];
+      });
+      setErrors(formattedErrors);
+    } else {
+      setErrors({ general: `Failed to save team member: ${err.message}` });
+    }
+    console.error('Error saving team member:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -174,9 +174,8 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Routes>
-          <Route path="/" element={<MainSite contentData={contentData} onContactSubmit={addContactSubmission} />} />
           <Route 
-            path="/login" 
+            path="/" 
             element={
               isAuthenticated ? 
               <Navigate to="/dashboard" /> : 
