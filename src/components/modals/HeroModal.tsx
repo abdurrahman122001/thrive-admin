@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 
 interface HeroData {
@@ -6,6 +6,8 @@ interface HeroData {
   subtitle: string;
   description: string;
   image: string;
+  slides: { id?: number; title: string; subtitle: string; description: string; image: string; orderIndex: number }[];
+  currentSlide: number;
 }
 
 interface HeroModalProps {
@@ -16,10 +18,86 @@ interface HeroModalProps {
 
 const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
   const [formData, setFormData] = useState(data);
+  const [selectedFiles, setSelectedFiles] = useState<(File | null)[]>(data.slides.map(() => null));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const savedData = localStorage.getItem('heroSlides');
+    if (savedData) {
+      setFormData(JSON.parse(savedData));
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const formDataToSend = new FormData();
+    const slidesToSave = formData.slides.map((slide, index) => {
+      const file = selectedFiles[index];
+      if (file) {
+        formDataToSend.append(`slides[${index}][image]`, file);
+      }
+      return {
+        id: slide.id,
+        title: slide.title,
+        subtitle: slide.subtitle,
+        description: slide.description,
+        image: file ? URL.createObjectURL(file) : slide.image,
+        order_index: slide.orderIndex,
+      };
+    });
+
+    slidesToSave.forEach((slide, index) => {
+      formDataToSend.append(`slides[${index}][id]`, slide.id?.toString() || '');
+      formDataToSend.append(`slides[${index}][title]`, slide.title);
+      formDataToSend.append(`slides[${index}][subtitle]`, slide.subtitle);
+      formDataToSend.append(`slides[${index}][description]`, slide.description);
+      formDataToSend.append(`slides[${index}][order_index]`, slide.order_index.toString());
+    });
+    formDataToSend.append('currentSlide', formData.currentSlide.toString());
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/hero-slides', {
+        method: 'post',
+        body: formDataToSend,
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setFormData((prev) => ({
+          ...prev,
+          slides: result.data.map((slide: any) => ({
+            id: slide.id,
+            title: slide.title,
+            subtitle: slide.subtitle,
+            description: slide.description,
+            image: `http://127.0.0.1:8000/storage/${slide.image}`,
+            orderIndex: slide.order_index,
+          })),
+          currentSlide: result.currentSlide,
+        }));
+        localStorage.setItem('heroSlides', JSON.stringify(formData));
+        onSave(formData);
+      }
+    } catch (error) {
+      console.error('Error saving hero slides:', error);
+    }
+  };
+
+  const addSlide = () => {
+    setFormData({
+      ...formData,
+      slides: [...formData.slides, { id: undefined, title: '', subtitle: '', description: '', image: '', orderIndex: formData.slides.length }],
+    });
+    setSelectedFiles([...selectedFiles, null]);
+  };
+
+  const updateSlide = (index: number, field: string, value: string | File) => {
+    const newSlides = [...formData.slides];
+    newSlides[index] = { ...newSlides[index], [field]: value };
+    setFormData({ ...formData, slides: newSlides });
+    if (field === 'image' && value instanceof File) {
+      const newFiles = [...selectedFiles];
+      newFiles[index] = value;
+      setSelectedFiles(newFiles);
+    }
   };
 
   return (
@@ -31,64 +109,83 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Subtitle</label>
-            <input
-              type="text"
-              value={formData.subtitle}
-              onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
-            <input
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-            {formData.image && (
-              <div className="mt-3">
-                <img 
-                  src={formData.image} 
-                  alt="Preview" 
-                  className="w-full h-32 object-cover rounded-lg"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
+          {formData.slides.map((slide, index) => (
+            <div key={index} className="border p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">Slide {index + 1}</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <input
+                  type="text"
+                  value={slide.title}
+                  onChange={(e) => updateSlide(index, 'title', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
                 />
               </div>
-            )}
-          </div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subtitle</label>
+                <input
+                  type="text"
+                  value={slide.subtitle}
+                  onChange={(e) => updateSlide(index, 'subtitle', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea
+                  value={slide.description}
+                  onChange={(e) => updateSlide(index, 'description', e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Image Upload</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) updateSlide(index, 'image', file);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {(selectedFiles[index] || slide.image) && (
+                  <div className="mt-3">
+                    <img
+                      src={selectedFiles[index] ? URL.createObjectURL(selectedFiles[index]!) : `http://127.0.0.1:8000/storage/${slide.image}`}
+                      alt={`Preview Slide ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Order Index</label>
+                <input
+                  type="number"
+                  value={slide.orderIndex}
+                  onChange={(e) => updateSlide(index, 'orderIndex', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addSlide}
+            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Add Slide
+          </button>
           <div className="flex justify-end space-x-4 pt-6 border-t">
             <button
               type="button"

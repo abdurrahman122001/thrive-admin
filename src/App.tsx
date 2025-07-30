@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import MainSite from './components/MainSite';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
@@ -46,12 +47,13 @@ export interface ContentData {
 
 export interface ContactSubmission {
   id: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   message: string;
-  submittedAt: string;
   status: 'new' | 'read' | 'replied';
+  created_at: string;
+  updated_at: string;
 }
 
 const defaultData: ContentData = {
@@ -132,42 +134,45 @@ function App() {
   const [contactSubmissions, setContactSubmissions] = useState<ContactSubmission[]>([]);
 
   useEffect(() => {
+    // Load content data from localStorage
     const savedData = localStorage.getItem('thriveContentData');
     if (savedData) {
       setContentData(JSON.parse(savedData));
     }
 
-    const savedSubmissions = localStorage.getItem('thriveContactSubmissions');
-    if (savedSubmissions) {
-      setContactSubmissions(JSON.parse(savedSubmissions));
-    }
-
+    // Check authentication status
     const authStatus = localStorage.getItem('thriveAuth');
     if (authStatus === 'true') {
       setIsAuthenticated(true);
     }
-  }, []);
+
+    // Fetch contact submissions from API
+    const fetchSubmissions = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/contact-submissions', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        setContactSubmissions(response.data);
+      } catch (error: any) {
+        console.error('Error fetching submissions:', error.response?.data || error.message);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchSubmissions();
+    }
+  }, [isAuthenticated]);
 
   const updateContent = (newData: ContentData) => {
     setContentData(newData);
     localStorage.setItem('thriveContentData', JSON.stringify(newData));
   };
 
-  const addContactSubmission = (submission: Omit<ContactSubmission, 'id' | 'submittedAt' | 'status'>) => {
-    const newSubmission: ContactSubmission = {
-      ...submission,
-      id: Date.now().toString(),
-      submittedAt: new Date().toISOString(),
-      status: 'new'
-    };
-    const updatedSubmissions = [newSubmission, ...contactSubmissions];
-    setContactSubmissions(updatedSubmissions);
-    localStorage.setItem('thriveContactSubmissions', JSON.stringify(updatedSubmissions));
-  };
-
   const updateContactSubmissions = (submissions: ContactSubmission[]) => {
     setContactSubmissions(submissions);
-    localStorage.setItem('thriveContactSubmissions', JSON.stringify(submissions));
   };
 
   return (
@@ -175,7 +180,7 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <Routes>
           <Route 
-            path="/" 
+            path="/login" 
             element={
               isAuthenticated ? 
               <Navigate to="/dashboard" /> : 
@@ -187,13 +192,22 @@ function App() {
             element={
               isAuthenticated ? 
               <Dashboard 
-                contentData={contentData} 
+                contentData={contentData}
                 updateContent={updateContent}
                 setIsAuthenticated={setIsAuthenticated}
                 contactSubmissions={contactSubmissions}
                 updateContactSubmissions={updateContactSubmissions}
               /> : 
               <Navigate to="/login" />
+            } 
+          />
+          <Route 
+            path="/" 
+            element={
+              <MainSite 
+                contentData={contentData}
+                updateContactSubmissions={updateContactSubmissions}
+              />
             } 
           />
         </Routes>
