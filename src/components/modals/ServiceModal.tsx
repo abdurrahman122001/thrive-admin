@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { X, Save, Plus, Trash2 } from 'lucide-react';
 
 interface ServiceData {
@@ -31,10 +32,22 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
     }
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanedFeatures = formData.features.filter(feature => feature.trim() !== '');
-    onSave({ ...formData, features: cleanedFeatures });
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/services', {
+        title: formData.title,
+        description: formData.description,
+        icon: formData.icon,
+        features: cleanedFeatures,
+      });
+      onSave(response.data); // Pass the created service data back to the parent
+      onClose(); // Close the modal after successful save
+    } catch (error) {
+      console.error('Error saving service:', error);
+      // Handle error (e.g., show a notification to the user)
+    }
   };
 
   const addFeature = () => {
@@ -83,57 +96,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
-            <select
-              value={formData.icon}
-              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {iconOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <label className="block text-sm font-medium text-gray-700">Features</label>
-              <button
-                type="button"
-                onClick={addFeature}
-                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Feature</span>
-              </button>
-            </div>
-            <div className="space-y-3">
-              {formData.features.map((feature, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <input
-                    type="text"
-                    value={feature}
-                    onChange={(e) => updateFeature(index, e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter feature"
-                  />
-                  {formData.features.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeFeature(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="flex justify-end space-x-4 pt-6 border-t">
