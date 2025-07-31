@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Custom styles for the Quill editor */
+.ql-toolbar.ql-snow {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  border-color: #e5e7eb;
+}
+
+.ql-container.ql-snow {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  border-color: #e5e7eb;
+  min-height: 150px;
+}
+
+.ql-editor {
+  min-height: 150px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* When there's an error */
+.border-red-500 .ql-toolbar.ql-snow,
+.border-red-500 .ql-container.ql-snow {
+  border-color: #ef4444;
+}

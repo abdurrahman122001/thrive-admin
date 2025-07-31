@@ -15,7 +15,9 @@ export interface Hero {
 export interface Service {
   id: string;
   title: string;
-  description: string;
+  short_description: string;
+  long_description: string;
+
   features?: string[];
 }
 
@@ -59,23 +61,23 @@ export interface ContactSubmission {
   last_name: string;
   email: string;
   message: string;
-  status: 'new' | 'read' | 'replied';
+  status: "new" | "read" | "replied";
   created_at: string;
   updated_at: string;
 }
 export interface FooterData {
-    id?: number;
-    title: string;
-    description: string;
-    privacy_link: string;
-    terms_link: string;
-    disclaimer_link: string;
-    copyright_text: string;
-    designer_text: string;
-    logo?: string | File;
-    facebook_url: string;
-    twitter_url: string;
-    instagram_url: string;
-    pinterest_url: string;
-    linkedin_url: string;
+  id?: number;
+  title: string;
+  description: string;
+  privacy_link: string;
+  terms_link: string;
+  disclaimer_link: string;
+  copyright_text: string;
+  designer_text: string;
+  logo?: string | File;
+  facebook_url: string;
+  twitter_url: string;
+  instagram_url: string;
+  pinterest_url: string;
+  linkedin_url: string;
 }

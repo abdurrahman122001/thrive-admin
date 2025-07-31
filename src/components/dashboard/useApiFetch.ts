@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
-import axios from 'axios';
-import { ContentData, About, Service, TeamMember } from '../../types';
+import { useState, useCallback, useRef } from "react";
+import axios from "axios";
+import { ContentData, About, Service, TeamMember } from "../../types";
 
 // Interface for fetch result
 interface FetchResult<T extends Service | TeamMember | About> {
@@ -12,7 +12,7 @@ interface FetchResult<T extends Service | TeamMember | About> {
 }
 
 export const useApiFetch = <T extends Service | TeamMember | About>(
-  type: 'services' | 'team' | 'abouts',
+  type: "services" | "team" | "abouts",
   initialData: T[],
   contentData: ContentData,
   updateContent: (data: ContentData) => void
@@ -27,7 +27,9 @@ export const useApiFetch = <T extends Service | TeamMember | About>(
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Use VITE_API_URL with fallback for development
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://thriveenterprisesolutions.com.au/admin";
 
   // Debounce function to prevent rapid calls
   const debounce = (callback: () => void, delay: number) => {
@@ -39,12 +41,26 @@ export const useApiFetch = <T extends Service | TeamMember | About>(
 
   const fetchData = useCallback(
     async (force: boolean = false) => {
-      const endpoint = type === 'services' ? 'services' : type === 'team' ? 'teams/list' : 'abouts';
+      const endpoint =
+        type === "services"
+          ? "services"
+          : type === "team"
+          ? "teams/list"
+          : "abouts";
 
       // Check cache
       const now = Date.now();
-      if (!force && lastFetched.current && now - lastFetched.current < cacheTimeout && data.length > 0) {
-        console.log(`Using cached ${type} data (last fetched: ${new Date(lastFetched.current).toISOString()})`);
+      if (
+        !force &&
+        lastFetched.current &&
+        now - lastFetched.current < cacheTimeout &&
+        data.length > 0
+      ) {
+        console.log(
+          `Using cached ${type} data (last fetched: ${new Date(
+            lastFetched.current
+          ).toISOString()})`
+        );
         return;
       }
 
@@ -55,17 +71,23 @@ export const useApiFetch = <T extends Service | TeamMember | About>(
         const response = await axios.get(`${API_URL}/api/${endpoint}`, {
           timeout: 5000,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+            Authorization: `Bearer ${localStorage.getItem("thriveAuth") || ""}`,
           },
         });
 
         let updatedData: T[] = response.data;
 
         // Handle image URLs for team and abouts
-        if (type === 'team' || type === 'abouts') {
+        if (type === "team" || type === "abouts") {
           updatedData = response.data.map((item: About | TeamMember) => {
-            const imageUrl = item.image ? `${API_URL}/storage/${item.image}` : '';
-            console.log(`Constructed image URL for ${type} - ${item.name || item.id}: ${imageUrl}`);
+            const imageUrl = item.image
+              ? `${API_URL}/storage/${item.image}`
+              : "";
+            console.log(
+              `Constructed image URL for ${type} - ${
+                item.name || item.id
+              }: ${imageUrl}`
+            );
             return {
               ...item,
               image: imageUrl,
@@ -79,25 +101,34 @@ export const useApiFetch = <T extends Service | TeamMember | About>(
         lastFetched.current = now; // Update cache timestamp
 
         // Update contentData based on type
-        if (type === 'services') {
+        if (type === "services") {
           updateContent({ ...contentData, services: updatedData as Service[] });
-        } else if (type === 'team') {
+        } else if (type === "team") {
           updateContent({ ...contentData, team: updatedData as TeamMember[] });
-        } else if (type === 'abouts') {
-          updateContent({ ...contentData, about: updatedData[0] || contentData.about });
+        } else if (type === "abouts") {
+          updateContent({
+            ...contentData,
+            about: updatedData[0] || contentData.about,
+          });
         }
       } catch (err: any) {
         setLoading(false);
         let errorMessage = `Failed to fetch ${type}: ${err.message}`;
         if (err.response) {
-          errorMessage += ` (Status: ${err.response.status}, Data: ${JSON.stringify(err.response.data)})`;
+          errorMessage += ` (Status: ${
+            err.response.status
+          }, Data: ${JSON.stringify(err.response.data)})`;
         }
 
         if (err.response?.status === 429 && retryCount < maxRetries) {
           const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 100; // Exponential backoff with jitter
-          console.log(`Rate limit hit for ${type}. Retrying in ${delay / 1000} seconds... (Attempt ${retryCount + 1}/${maxRetries})`);
+          console.log(
+            `Rate limit hit for ${type}. Retrying in ${
+              delay / 1000
+            } seconds... (Attempt ${retryCount + 1}/${maxRetries})`
+          );
           setTimeout(() => {
-            setRetryCount(prev => prev + 1);
+            setRetryCount((prev) => prev + 1);
             fetchData(true); // Force retry
           }, delay);
         } else {

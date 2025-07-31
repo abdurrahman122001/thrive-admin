@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface ServiceData {
   id?: string;
   title: string;
-  description: string;
+  short_description: string;
+  long_description: string;
 }
 
 interface ServiceModalProps {
@@ -17,7 +20,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
   const [formData, setFormData] = useState<ServiceData>({
     id: data?.id,
     title: data?.title || '',
-    description: data?.description || '',
+    short_description: data?.short_description || '',
+    long_description: data?.long_description || '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -27,10 +31,38 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
       setFormData({
         id: data.id,
         title: data.title || '',
-        description: data.description || '',
+        short_description: data.short_description || '',
+        long_description: data.long_description || '',
       });
     }
   }, [data]);
+
+  // Custom toolbar configuration for the editor
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['link'],
+        ['clean']
+      ],
+    }
+  }), []);
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'link'
+  ];
+
+  const handleLongDescriptionChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      long_description: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +74,11 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     }
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+    if (!formData.short_description.trim()) {
+      newErrors.short_description = 'Short description is required';
+    }
+    if (!formData.long_description.trim() || formData.long_description === '<p><br></p>') {
+      newErrors.long_description = 'Long description is required';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -56,7 +91,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
       const serviceData = {
         id: formData.id,
         title: formData.title,
-        description: formData.description,
+        short_description: formData.short_description,
+        long_description: formData.long_description,
       };
 
       onSave(serviceData);
@@ -100,17 +136,33 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ data, onSave, onClose }) =>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Short Description *</label>
             <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className={`w-full px-4 py-3 border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              value={formData.short_description}
+              onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+              className={`w-full px-4 py-3 border ${errors.short_description ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
+              rows={3}
               required
               disabled={loading}
-              placeholder="Enter service description"
+              placeholder="Enter a brief summary of the service"
             />
-            {errors.description && <p className="text-red-600 text-sm mt-1">{errors.description}</p>}
+            {errors.short_description && <p className="text-red-600 text-sm mt-1">{errors.short_description}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Long Description *</label>
+            <div className={`border ${errors.long_description ? 'border-red-500' : 'border-gray-300'} rounded-lg`}>
+              <ReactQuill
+                theme="snow"
+                value={formData.long_description}
+                onChange={handleLongDescriptionChange}
+                modules={modules}
+                formats={formats}
+                placeholder="Enter detailed service description"
+                className="bg-white"
+              />
+            </div>
+            {errors.long_description && <p className="text-red-600 text-sm mt-1">{errors.long_description}</p>}
           </div>
 
           <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
