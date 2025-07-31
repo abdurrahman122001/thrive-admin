@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Plus, Edit3, Trash2 } from 'lucide-react';
 import { ContentData, Service } from '../../types';
@@ -10,115 +10,149 @@ interface ServicesSectionProps {
   updateContent: (data: ContentData) => void;
   showModal: string | null;
   setShowModal: (modal: string | null) => void;
-  setEditingItem: (item: any) => void;
 }
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
 
 const ServicesSection: React.FC<ServicesSectionProps> = ({
   contentData,
   updateContent,
   showModal,
   setShowModal,
-  setEditingItem,
 }) => {
   const { data: services, loading, error, fetchData } = useApiFetch<Service>('services', [], contentData, updateContent);
+  const [localServices, setLocalServices] = useState<Service[]>(services);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+
+  // Sync localServices with fetched services
+  useEffect(() => {
+    setLocalServices(services);
+  }, [services]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleEdit = (item?: Service) => {
-    setEditingItem(item);
+  const handleEdit = useCallback((service?: Service) => {
+    setEditingService(service || null);
     setShowModal('service');
-  };
+  }, [setShowModal]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/services/${id}`, {
+      // Optimistic update: Remove service locally first
+      const updatedServices = localServices.filter(service => service.id !== id);
+      setLocalServices(updatedServices);
+      updateContent({ ...contentData, services: updatedServices });
+
+      // Perform API delete
+      await axios.delete(`${API_URL}/api/services/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
       });
-      const updatedServices = services.filter(service => service.id !== id);
-      updateContent({ ...contentData, services: updatedServices });
+
+      // Re-fetch to ensure consistency with server
+      await fetchData();
     } catch (err) {
       console.error('Error deleting service:', err);
+      // Revert optimistic update on error
+      setLocalServices(services);
+      updateContent({ ...contentData, services });
     }
-  };
+  }, [localServices, contentData, updateContent, fetchData, services]);
+
+  const handleSave = useCallback(async (data: Service) => {
+    try {
+      let updatedServices;
+
+      if (data.id) {
+        // Optimistic update: Update existing service locally
+        updatedServices = localServices.map(s => (s.id === data.id ? { ...s, ...data } : s));
+        setLocalServices(updatedServices);
+        updateContent({ ...contentData, services: updatedServices });
+
+        // Perform API update
+        const response = await axios.put(`${API_URL}/api/services/${data.id}`, data, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
+        });
+        updatedServices = localServices.map(s => (s.id === data.id ? response.data : s));
+      } else {
+        // Optimistic update: Add new service locally with temporary ID
+        const tempId = `temp-${Date.now()}`;
+        updatedServices = [...localServices, { ...data, id: tempId }];
+        setLocalServices(updatedServices);
+        updateContent({ ...contentData, services: updatedServices });
+
+        // Perform API create
+        const response = await axios.post(`${API_URL}/api/services`, data, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
+        });
+        updatedServices = localServices.map(s => (s.id === tempId ? response.data : s));
+      }
+
+      // Update local state with final API response
+      setLocalServices(updatedServices);
+      updateContent({ ...contentData, services: updatedServices });
+
+      // Re-fetch to ensure consistency with server
+      await fetchData();
+
+      setShowModal(null);
+      setEditingService(null);
+    } catch (err) {
+      console.error('Error saving service:', err);
+      // Revert optimistic update on error
+      setLocalServices(services);
+      updateContent({ ...contentData, services });
+    }
+  }, [localServices, contentData, updateContent, setShowModal, fetchData, services]);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Services</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Services</h2>
         <button
           onClick={() => handleEdit()}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <Plus className="w-4 h-4" />
           <span>Add Service</span>
         </button>
       </div>
-      {loading && <p>Loading services...</p>}
+      {loading && <p className="text-gray-600">Loading services...</p>}
       {error && <p className="text-red-600">{error}</p>}
       {!loading && !error && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <div key={service.id} className="border border-gray-200 rounded-lg p-6">
+          {localServices.map((service) => (
+            <div key={service.id} className="border border-gray-200 rounded-lg p-6 bg-gray-50 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold">{service.title}</h3>
+                <h3 className="text-lg font-semibold text-gray-800">{service.title}</h3>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(service)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(service.id)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-              <p className="text-gray-600 text-sm mb-3">{service.description}</p>
-              <div className="space-y-1">
-                {(service.features ?? []).map((feature: string, index: number) => (
-                  <div key={index} className="text-xs text-gray-500 flex items-center space-x-2">
-                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-gray-600 text-sm">{service.description}</p>
             </div>
           ))}
         </div>
       )}
       {showModal === 'service' && (
         <ServiceModal
-          data={services.find(s => s.id === (showModal ? (showModal as any).id : undefined))}
-          onSave={async (data) => {
-            try {
-              let updatedServices;
-              if (data.id) {
-                await axios.put(`http://127.0.0.1:8000/api/services/${data.id}`, data, {
-                  headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
-                });
-                updatedServices = services.map(s => s.id === data.id ? data : s);
-              } else {
-                const response = await axios.post('http://127.0.0.1:8000/api/services', data, {
-                  headers: { Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}` },
-                });
-                updatedServices = [...services, { ...response.data, id: response.data.id }];
-              }
-              updateContent({ ...contentData, services: updatedServices });
-            } catch (err) {
-              console.error('Error saving service:', err);
-            } finally {
-              setShowModal(null);
-              setEditingItem(null);
-            }
-          }}
+          data={editingService || undefined}
+          onSave={handleSave}
           onClose={() => {
             setShowModal(null);
-            setEditingItem(null);
+            setEditingService(null);
           }}
         />
       )}

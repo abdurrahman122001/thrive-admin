@@ -19,11 +19,12 @@ const SubmissionsSection: React.FC<SubmissionsSectionProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
 
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://127.0.0.1:8000/api/contact-submissions');
+      const response = await axios.get(`${API_URL}/api/contact-submissions`);
       updateContactSubmissions(response.data);
       setError(null);
     } catch (err: any) {
@@ -42,7 +43,7 @@ const SubmissionsSection: React.FC<SubmissionsSectionProps> = ({
   const markAsRead = async (id: string) => {
     try {
       const response = await axios.put(
-        `http://127.0.0.1:8000/api/contact-submissions/${id}`,
+        `${API_URL}/api/contact-submissions/${id}`,
         { status: 'read' }
       );
       const updatedSubmissions = contactSubmissions.map(sub =>
@@ -56,7 +57,7 @@ const SubmissionsSection: React.FC<SubmissionsSectionProps> = ({
 
   const deleteSubmission = async (id: string) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/contact-submissions/${id}`);
+      await axios.delete(`${API_URL}/api/contact-submissions/${id}`);
       const updatedSubmissions = contactSubmissions.filter(sub => sub.id !== id);
       updateContactSubmissions(updatedSubmissions);
     } catch (err) {
@@ -115,9 +116,8 @@ const SubmissionsSection: React.FC<SubmissionsSectionProps> = ({
           {contactSubmissions.map((submission) => (
             <div
               key={submission.id}
-              className={`border rounded-lg p-6 transition-all hover:shadow-md ${
-                submission.status === 'new' ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
-              }`}
+              className={`border rounded-lg p-6 transition-all hover:shadow-md ${submission.status === 'new' ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                }`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">

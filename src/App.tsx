@@ -128,8 +128,13 @@ const defaultData: ContentData = {
   }
 };
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check for token in localStorage on initial load
+    return localStorage.getItem('thriveAuthToken') !== null;
+  });
   const [contentData, setContentData] = useState<ContentData>(defaultData);
   const [contactSubmissions, setContactSubmissions] = useState<ContactSubmission[]>([]);
 
@@ -140,24 +145,22 @@ function App() {
       setContentData(JSON.parse(savedData));
     }
 
-    // Check authentication status
-    const authStatus = localStorage.getItem('thriveAuth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
-
-    // Fetch contact submissions from API
+    // Fetch contact submissions from API if authenticated
     const fetchSubmissions = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/contact-submissions', {
+        const response = await axios.get(`${API_URL}/api/contact-submissions`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+            Authorization: `Bearer ${localStorage.getItem('thriveAuthToken')}`,
             'Content-Type': 'application/json',
           },
         });
         setContactSubmissions(response.data);
       } catch (error: any) {
         console.error('Error fetching submissions:', error.response?.data || error.message);
+        // If token is invalid, logout the user
+        if (error.response?.status === 401) {
+          handleLogout();
+        }
       }
     };
 
@@ -175,16 +178,34 @@ function App() {
     setContactSubmissions(submissions);
   };
 
+  const handleLogin = (token: string) => {
+    localStorage.setItem('thriveAuthToken', token);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('thriveAuthToken');
+    setIsAuthenticated(false);
+  };
+
   return (
-    <Router>
+   <Router>
       <div className="min-h-screen bg-gray-50">
         <Routes>
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/login" replace />
+            } 
+          />
           <Route 
             path="/login" 
             element={
               isAuthenticated ? 
-              <Navigate to="/dashboard" /> : 
-              <Login setIsAuthenticated={setIsAuthenticated} />
+              <Navigate to="/dashboard" replace /> : 
+              <Login onLogin={handleLogin} />
             } 
           />
           <Route 
@@ -194,15 +215,15 @@ function App() {
               <Dashboard 
                 contentData={contentData}
                 updateContent={updateContent}
-                setIsAuthenticated={setIsAuthenticated}
+                onLogout={handleLogout}
                 contactSubmissions={contactSubmissions}
                 updateContactSubmissions={updateContactSubmissions}
               /> : 
-              <Navigate to="/login" />
+              <Navigate to="/login" replace state={{ from: '/dashboard' }} />
             } 
           />
           <Route 
-            path="/" 
+            path="/main" 
             element={
               <MainSite 
                 contentData={contentData}
@@ -210,6 +231,7 @@ function App() {
               />
             } 
           />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </Router>

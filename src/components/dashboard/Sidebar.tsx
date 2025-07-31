@@ -4,13 +4,13 @@ import { Home, Settings, Users, FileText, MessageSquare, LogOut, Mail } from 'lu
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  setIsAuthenticated: (auth: boolean) => void;
+  onLogout: () => void;  // Changed from setIsAuthenticated to onLogout
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, setIsAuthenticated }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout  }) => {
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('thriveAuth');
+    // Call the parent's logout handler
+    onLogout();
   };
 
   const tabs = [
@@ -20,6 +20,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, setIsAuthent
     { id: 'about', name: 'About', icon: FileText },
     { id: 'contact', name: 'Contact', icon: MessageSquare },
     { id: 'submissions', name: 'Form Submissions', icon: FileText },
+    { id: 'footer', name: 'Footer', icon: Mail },
+
   ];
 
   return (
@@ -36,9 +38,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, setIsAuthent
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center space-x-3 px-6 py-3 text-left hover:bg-gray-50 transition-colors ${
-                activeTab === tab.id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
-              }`}
+              className={`w-full flex items-center space-x-3 px-6 py-3 text-left hover:bg-gray-50 transition-colors ${activeTab === tab.id ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600' : 'text-gray-700'
+                }`}
             >
               <IconComponent className="w-5 h-5" />
               <span className="font-medium">{tab.name}</span>

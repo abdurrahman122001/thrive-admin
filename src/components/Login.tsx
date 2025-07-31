@@ -1,23 +1,39 @@
 import React, { useState } from 'react';
 import { Lock, User, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginProps {
-  setIsAuthenticated: (auth: boolean) => void;
+  onLogin: (token: string) => void;
 }
 
-const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
+const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
     
-    // Simple authentication (in production, use proper authentication)
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      setIsAuthenticated(true);
-      localStorage.setItem('thriveAuth', 'true');
-    } else {
-      setError('Invalid credentials. Use admin/admin123');
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Simple condition check (not actual authentication)
+      if (credentials.username === 'admin' && credentials.password === 'admin123') {
+        // Generate a mock token
+        const mockToken = 'mock-auth-token-' + Math.random().toString(36).substring(2);
+        onLogin(mockToken);
+        navigate('/dashboard');
+      } else {
+        setError('Invalid credentials. Use admin/admin123');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,10 +87,17 @@ const Login: React.FC<LoginProps> = ({ setIsAuthenticated }) => {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold flex items-center justify-center space-x-2 group"
+            disabled={isLoading}
+            className={`w-full bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-3 rounded-xl hover:shadow-lg transition-all duration-300 font-semibold flex items-center justify-center space-x-2 group ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            <span>Login</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            {isLoading ? (
+              <span>Logging in...</span>
+            ) : (
+              <>
+                <span>Login</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 

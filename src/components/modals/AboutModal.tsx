@@ -13,15 +13,24 @@ interface AboutModalProps {
   onSave: (data: AboutData) => void;
   onClose: () => void;
 }
+const API_URL = import.meta.env.API_URL || "http://thriveenterprisesolutions.com.au/admin";
 
 const AboutModal: React.FC<AboutModalProps> = ({ data, onSave, onClose }) => {
-  const [formData, setFormData] = useState<AboutData>(data);
+  const [formData, setFormData] = useState<AboutData>({
+    id: data.id,
+    title: data.title || '',
+    description: data.description || '',
+    image: data.image
+  });
+
   const [imagePreview, setImagePreview] = useState<string>(
-    data.image instanceof File 
-      ? URL.createObjectURL(data.image) 
-      : data.image 
-        ? `http://127.0.0.1:8000/storage/${data.image}` 
-        : ''
+    data.image 
+      ? typeof data.image === 'string'
+        ? data.image.startsWith('http') 
+          ? data.image 
+          : `${API_URL}/storage/${data.image}`
+        : URL.createObjectURL(data.image)
+      : ''
   );
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

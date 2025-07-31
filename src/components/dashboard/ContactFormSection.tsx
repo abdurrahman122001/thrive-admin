@@ -9,7 +9,7 @@ interface ContactFormSectionProps {
   showModal: string | null;
   setShowModal: (modal: string | null) => void;
 }
-
+const API_URL = import.meta.env.API_URL || "http://thriveenterprisesolutions.com.au/admin";
 const ContactFormSection: React.FC<ContactFormSectionProps> = ({ contentData, updateContent, showModal, setShowModal }) => {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-8">
