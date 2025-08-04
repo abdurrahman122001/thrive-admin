@@ -196,20 +196,20 @@ function App() {
             path="/" 
             element={
               isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <Navigate to="/login" replace />
+              <Navigate to="/super-admin/dashboard" replace /> : 
+              <Navigate to="/super-admin/login" replace />
             } 
           />
           <Route 
-            path="/login" 
+            path="/super-admin/login" 
             element={
               isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/super-admin/dashboard" replace /> : 
               <Login onLogin={handleLogin} />
             } 
           />
           <Route 
-            path="/dashboard" 
+            path="/super-admin/dashboard" 
             element={
               isAuthenticated ? 
               <Dashboard 
@@ -219,7 +219,7 @@ function App() {
                 contactSubmissions={contactSubmissions}
                 updateContactSubmissions={updateContactSubmissions}
               /> : 
-              <Navigate to="/login" replace state={{ from: '/dashboard' }} />
+              <Navigate to="/super-admin/login" replace state={{ from: '/super-admin/dashboard' }} />
             } 
           />
           <Route 
