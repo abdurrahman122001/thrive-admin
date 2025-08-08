@@ -19,7 +19,7 @@ interface HeroModalProps {
 const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
   const [formData, setFormData] = useState<HeroData>(data);
   const [selectedFiles, setSelectedFiles] = useState<(File | null)[]>(data.slides.map(() => null));
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   useEffect(() => {
     // Load from localStorage only if needed (optional, as initial data comes from props)

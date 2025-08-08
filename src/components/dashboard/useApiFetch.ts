@@ -29,7 +29,7 @@ export const useApiFetch = <T extends Service | TeamMember | About>(
   // Use VITE_API_URL with fallback for development
   const API_URL =
     import.meta.env.VITE_API_URL ||
-    "http://thriveenterprisesolutions.com.au/admin";
+    "https://thriveenterprisesolutions.com.au/admin";
 
   // Debounce function to prevent rapid calls
   const debounce = (callback: () => void, delay: number) => {

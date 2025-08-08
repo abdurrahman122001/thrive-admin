@@ -41,7 +41,7 @@ const FooterSection: React.FC<FooterSectionProps> = ({
 
   const API_URL =
     import.meta.env.VITE_API_URL ||
-    "http://thriveenterprisesolutions.com.au/admin";
+    "https://thriveenterprisesolutions.com.au/admin";
 
   useEffect(() => {
     fetchFooters();

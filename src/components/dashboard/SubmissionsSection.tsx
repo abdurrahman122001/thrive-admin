@@ -19,7 +19,7 @@ const SubmissionsSection: React.FC<SubmissionsSectionProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   const fetchSubmissions = async () => {
     try {

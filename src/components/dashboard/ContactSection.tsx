@@ -31,7 +31,7 @@ const ContactSection: React.FC = () => {
   const [showModal, setShowModal] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   useEffect(() => {
     const fetchContactData = async () => {

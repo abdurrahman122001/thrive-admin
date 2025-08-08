@@ -19,7 +19,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ updateContent, showModal, set
     contactForm: { title: '', subtitle: '', successMessage: '' },
   });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   useEffect(() => {
     fetch(`${API_URL}/api/hero-slides`)

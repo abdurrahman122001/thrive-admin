@@ -30,7 +30,7 @@ const TeamModal: React.FC<TeamModalProps> = ({ data, onSave, onClose }) => {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://thriveenterprisesolutions.com.au/admin';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   useEffect(() => {
     if (data) {

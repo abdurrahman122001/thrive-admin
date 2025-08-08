@@ -13,7 +13,7 @@ interface AboutModalProps {
   onSave: (data: AboutData) => void;
   onClose: () => void;
 }
-const API_URL = import.meta.env.API_URL || "http://thriveenterprisesolutions.com.au/admin";
+const API_URL = import.meta.env.API_URL || "https://thriveenterprisesolutions.com.au/admin";
 
 const AboutModal: React.FC<AboutModalProps> = ({ data, onSave, onClose }) => {
   const [formData, setFormData] = useState<AboutData>({
