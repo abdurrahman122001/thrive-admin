@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ContentData, ContactSubmission, FooterData } from '../types';
+import { ContentData, ContactSubmission, FooterData, SiteSetting } from '../types';
+
+// Sections
 import Sidebar from './dashboard/Sidebar';
 import HeroSection from './dashboard/HeroSection';
 import ServicesSection from './dashboard/ServicesSection';
@@ -9,7 +11,24 @@ import ContactSection from './dashboard/ContactSection';
 import ContactFormSection from './dashboard/ContactFormSection';
 import SubmissionsSection from './dashboard/SubmissionsSection';
 import FooterSection from './dashboard/FooterSection';
-import { Home, Settings, Users, FileText, MessageSquare, Mail } from 'lucide-react';
+import PrivacyPolicySection from './dashboard/PrivacyPolicySection';
+import TermsSection from './dashboard/TermsManager';
+import DisclaimerSection from './dashboard/DisclaimerManager';
+import SiteSettingsSection from './dashboard/SiteSettingsSection';
+
+// Icons
+import {
+  Home,
+  Settings,
+  Users,
+  FileText,
+  MessageSquare,
+  Mail,
+  ScrollText,
+  AlertTriangle,
+  Layout,
+} from 'lucide-react';
+import HeaderManager from './dashboard/HeaderManager';
 
 interface DashboardProps {
   contentData: ContentData;
@@ -42,17 +61,16 @@ const Dashboard: React.FC<DashboardProps> = ({
     { id: 'about', name: 'About', icon: FileText },
     { id: 'contact', name: 'Contact', icon: MessageSquare },
     { id: 'submissions', name: 'Form Submissions', icon: FileText },
+    { id: 'privacy', name: 'Privacy Policy', icon: Mail },
+    { id: 'terms', name: 'Terms & Conditions', icon: ScrollText },
+    { id: 'disclaimer', name: 'Disclaimer', icon: AlertTriangle },
+    { id: 'header-setting', name: 'Header Settings', icon: Layout },
     { id: 'footer', name: 'Footer', icon: Mail },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onLogout={onLogout}
-        tabs={tabs}
-      />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} tabs={tabs} />
 
       <div className="flex-1 p-8 overflow-auto">
         <div className="max-w-6xl mx-auto">
@@ -64,6 +82,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               setShowModal={setShowModal}
             />
           )}
+
           {activeTab === 'services' && (
             <ServicesSection
               contentData={contentData}
@@ -73,6 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               setEditingItem={setEditingItem}
             />
           )}
+
           {activeTab === 'team' && (
             <TeamSection
               contentData={contentData}
@@ -82,6 +102,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               setEditingItem={setEditingItem}
             />
           )}
+
           {activeTab === 'about' && (
             <AboutSection
               contentData={contentData}
@@ -91,6 +112,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               setEditingItem={setEditingItem}
             />
           )}
+
           {activeTab === 'contact' && (
             <ContactSection
               contentData={contentData}
@@ -99,12 +121,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               setShowModal={setShowModal}
             />
           )}
+
           {activeTab === 'contact-form' && (
-            <ContactFormSection
-              contentData={contentData}
-              updateContent={updateContent}
-            />
+            <ContactFormSection contentData={contentData} updateContent={updateContent} />
           )}
+
           {activeTab === 'submissions' && (
             <SubmissionsSection
               contactSubmissions={contactSubmissions}
@@ -113,6 +134,47 @@ const Dashboard: React.FC<DashboardProps> = ({
               setSelectedSubmission={setSelectedSubmission}
             />
           )}
+
+          {activeTab === 'privacy' && (
+            <PrivacyPolicySection
+              contentData={contentData}
+              updateContent={updateContent}
+              showModal={showModal}
+              setShowModal={setShowModal}
+            />
+          )}
+
+          {activeTab === 'terms' && (
+            <TermsSection
+              contentData={contentData}
+              updateContent={updateContent}
+              showModal={showModal}
+              setShowModal={setShowModal}
+              setEditingItem={setEditingItem}
+            />
+          )}
+
+          {activeTab === 'disclaimer' && (
+            <DisclaimerSection
+              contentData={contentData}
+              updateContent={updateContent}
+              showModal={showModal}
+              setShowModal={setShowModal}
+              setEditingItem={setEditingItem}
+            />
+          )}
+
+          {activeTab === 'header-setting' && (
+            <HeaderManager
+              contentData={contentData}
+              updateContent={updateContent}
+              showModal={showModal}
+              setShowModal={setShowModal}
+              setEditingItem={setEditingItem}
+
+            />
+          )}
+
           {activeTab === 'footer' && (
             <FooterSection
               footerData={footerData}

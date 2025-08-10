@@ -101,13 +101,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
+        {/* <div className="mt-6 p-4 bg-gray-50 rounded-xl">
           <p className="text-sm text-gray-600 text-center">
             <strong>Demo Credentials:</strong><br />
             Username: admin<br />
             Password: admin123
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );
