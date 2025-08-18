@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Disclaimer } from '../../types';
 import DisclaimerModal from '../modals/DisclaimerModal';
+import { Plus, Edit3, Trash2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || "https://thriveenterprisesolutions.com.au/admin/api";
 
@@ -104,14 +105,14 @@ const DisclaimerManager: React.FC = () => {
                     className="text-blue-600 hover:text-blue-800"
                     title="Edit"
                   >
-                    ✏️
+                    <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => deleteDisclaimer(disclaimer.id!)}
                     className="text-red-600 hover:text-red-800"
                     title="Delete"
                   >
-                    🗑️
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
               </tr>
