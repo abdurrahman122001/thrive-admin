@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Loader2 } from 'lucide-react';
 
 interface HeroData {
   title: string;
@@ -19,10 +19,10 @@ interface HeroModalProps {
 const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
   const [formData, setFormData] = useState<HeroData>(data);
   const [selectedFiles, setSelectedFiles] = useState<(File | null)[]>(data.slides.map(() => null));
+  const [isLoading, setIsLoading] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || 'https://thriveenterprisesolutions.com.au/admin';
 
   useEffect(() => {
-    // Load from localStorage only if needed (optional, as initial data comes from props)
     const savedData = localStorage.getItem('heroSlides');
     if (savedData) {
       setFormData(JSON.parse(savedData));
@@ -31,20 +31,11 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formDataToSend = new FormData();
-    const slidesToSave = formData.slides.map((slide, index) => {
-      const file = selectedFiles[index];
-      return {
-        id: slide.id,
-        title: slide.title,
-        subtitle: slide.subtitle,
-        description: slide.description,
-        image: file ? URL.createObjectURL(file) : slide.image,
-        orderIndex: slide.orderIndex,
-      };
-    });
+    setIsLoading(true);
 
-    slidesToSave.forEach((slide, index) => {
+    const formDataToSend = new FormData();
+
+    formData.slides.forEach((slide, index) => {
       const file = selectedFiles[index];
       if (file) {
         formDataToSend.append(`slides[${index}][image]`, file);
@@ -55,6 +46,7 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
       formDataToSend.append(`slides[${index}][description]`, slide.description);
       formDataToSend.append(`slides[${index}][order_index]`, slide.orderIndex.toString());
     });
+
     formDataToSend.append('currentSlide', formData.currentSlide.toString());
 
     try {
@@ -62,6 +54,7 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
         method: 'POST',
         body: formDataToSend,
       });
+
       if (response.ok) {
         const result = await response.json();
         const updatedFormData = {
@@ -85,6 +78,8 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
       }
     } catch (error) {
       console.error('Error saving hero slides:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -145,98 +140,87 @@ const HeroModal: React.FC<HeroModalProps> = ({ data, onSave, onClose }) => {
                   </button>
                 )}
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={slide.title}
-                    onChange={(e) => updateSlide(index, 'title', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    required
-                    placeholder="Enter slide title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-                  <input
-                    type="text"
-                    value={slide.subtitle}
-                    onChange={(e) => updateSlide(index, 'subtitle', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    required
-                    placeholder="Enter slide subtitle"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={slide.description}
-                    onChange={(e) => updateSlide(index, 'description', e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    required
-                    placeholder="Enter slide description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) updateSlide(index, 'image', file);
-                    }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
-                  {(selectedFiles[index] || slide.image) && (
-                    <div className="mt-3">
-                      <img
-                        src={selectedFiles[index] ? URL.createObjectURL(selectedFiles[index]!) : slide.image}
-                        alt={`Preview Slide ${index + 1}`}
-                        className="w-full h-40 object-cover rounded-lg shadow-sm"
-                        onError={(e) => (e.currentTarget.src = '/placeholder-image.jpg')} // Fallback image
-                      />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Order Index</label>
-                  <input
-                    type="number"
-                    value={slide.orderIndex}
-                    onChange={(e) => updateSlide(index, 'orderIndex', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    required
-                    min="0"
-                  />
-                </div>
-              </div>
+              {/* Title */}
+              <input
+                type="text"
+                value={slide.title}
+                onChange={(e) => updateSlide(index, 'title', e.target.value)}
+                placeholder="Enter slide title"
+                className="w-full mb-3 px-4 py-3 border border-gray-300 rounded-lg"
+                required
+              />
+              {/* Subtitle */}
+              <input
+                type="text"
+                value={slide.subtitle}
+                onChange={(e) => updateSlide(index, 'subtitle', e.target.value)}
+                placeholder="Enter slide subtitle"
+                className="w-full mb-3 px-4 py-3 border border-gray-300 rounded-lg"
+                required
+              />
+              {/* Description */}
+              <textarea
+                value={slide.description}
+                onChange={(e) => updateSlide(index, 'description', e.target.value)}
+                rows={3}
+                className="w-full mb-3 px-4 py-3 border border-gray-300 rounded-lg"
+                required
+              />
+              {/* Image */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) updateSlide(index, 'image', file);
+                }}
+                className="w-full mb-3"
+              />
+              {(selectedFiles[index] || slide.image) && (
+                <img
+                  src={selectedFiles[index] ? URL.createObjectURL(selectedFiles[index]!) : slide.image}
+                  alt={`Preview Slide ${index + 1}`}
+                  className="w-full h-40 object-cover rounded-lg shadow-sm"
+                />
+              )}
+              {/* Order Index */}
+              <input
+                type="number"
+                value={slide.orderIndex}
+                onChange={(e) => updateSlide(index, 'orderIndex', parseInt(e.target.value))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                min="0"
+              />
             </div>
           ))}
+
+          {/* Add Slide Button */}
           <button
             type="button"
             onClick={addSlide}
-            className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full py-3 bg-green-600 text-white rounded-lg flex items-center justify-center"
           >
-            <Plus className="w-5 h-5" />
-            <span>Add New Slide</span>
+            <Plus className="w-5 h-5 mr-2" /> Add New Slide
           </button>
+
+          {/* Action Buttons */}
           <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+              className="px-6 py-3 border border-gray-300 rounded-lg"
+              disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg flex items-center space-x-2"
+              disabled={isLoading}
             >
+              {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
               <Save className="w-4 h-4" />
-              <span>Save Changes</span>
+              <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
             </button>
           </div>
         </form>

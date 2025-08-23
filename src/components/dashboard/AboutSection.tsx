@@ -20,27 +20,27 @@ const AboutSection: React.FC<AboutSectionProps> = ({
   showModal,
   setShowModal,
 }) => {
-  const { 
-    data: abouts, 
-    loading, 
-    error, 
-    fetchData 
+  const {
+    data: abouts,
+    loading,
+    error,
+    fetchData
   } = useApiFetch<About>('abouts', [], contentData, updateContent);
-  
+
   const [editingItem, setEditingItem] = useState<About | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true); // fresh load
   }, [fetchData]);
 
   const handleEdit = (item?: About) => {
-    setEditingItem(item || { 
-      id: undefined, 
-      title: '', 
-      description: '', 
-      image: '' 
+    setEditingItem(item || {
+      id: undefined,
+      title: '',
+      description: '',
+      image: ''
     });
     setShowModal('about');
     setApiError(null);
@@ -50,17 +50,19 @@ const AboutSection: React.FC<AboutSectionProps> = ({
     try {
       setIsProcessing(true);
       await axios.delete(`${API_URL}/api/abouts/${id}`, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
           'Content-Type': 'application/json'
         },
       });
-      
+
       const updatedAbouts = abouts.filter(about => about.id !== parseInt(id));
-      updateContent({ 
-        ...contentData, 
-        about: updatedAbouts[0] || contentData.about 
+      updateContent({
+        ...contentData,
+        about: updatedAbouts[0] || contentData.about
       });
+
+      fetchData(true); 
     } catch (err) {
       console.error('Error deleting about:', err);
       setApiError('Failed to delete about section. Please try again.');
@@ -70,91 +72,49 @@ const AboutSection: React.FC<AboutSectionProps> = ({
   };
 
   const handleSave = async (data: About) => {
+    setIsProcessing(true);
     try {
-      setIsProcessing(true);
-      setApiError(null);
-      
       const formData = new FormData();
       formData.append('title', data.title);
-      formData.append('description', data.description || '');
-      
-      if (data.image instanceof File) {
-        formData.append('image', data.image);
-      } else if (typeof data.image === 'string' && data.image) {
-        // If image is a string (existing image path), include it in the form data
-        formData.append('existing_image', data.image);
+      formData.append('description', data.description);
+      if ((data as any).imageFile) {
+        formData.append('image', (data as any).imageFile);
       }
 
       const config = {
         headers: {
-          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('thriveAuth') || ''}`,
+          'Content-Type': 'multipart/form-data',
         },
       };
 
-      let response;
-      let updatedAbouts: About[];
-
       if (data.id) {
-        // Update existing about
-        response = await axios.put(`${API_URL}/api/abouts/${data.id}`, formData, config);
-        
-        updatedAbouts = abouts.map(a => 
-          a.id === data.id 
-            ? { 
-                ...response.data, 
-                image: response.data.image 
-                  ? `${API_URL}/storage/${response.data.image}` 
-                  : '' 
-              } 
-            : a
-        );
+        await axios.post(`${API_URL}/api/abouts/${data.id}?_method=PUT`, formData, config);
       } else {
-        // Create new about
-        response = await axios.post(`${API_URL}/api/abouts`, formData, config);
-        
-        updatedAbouts = [
-          ...abouts, 
-          { 
-            ...response.data, 
-            image: response.data.image 
-              ? `${API_URL}/storage/${response.data.image}` 
-              : '' 
-          }
-        ];
+        await axios.post(`${API_URL}/api/abouts`, formData, config);
       }
-      
-      updateContent({ 
-        ...contentData, 
-        about: updatedAbouts[0] || contentData.about 
-      });
+
+      // Refresh to get updated_at and new image path
+      await fetchData(true);
+
       setShowModal(null);
-      setEditingItem(null);
     } catch (err) {
-      console.error('Error saving about:', err);
-      
-      let errorMessage = 'Failed to save about section. Please try again.';
-      if (axios.isAxiosError(err) && err.response) {
-        if (err.response.status === 422) {
-          // Handle validation errors
-          const errors = err.response.data.errors;
-          errorMessage = Object.values(errors).flat().join('\n');
-        } else if (err.response.status === 401) {
-          errorMessage = 'Unauthorized. Please login again.';
-        }
-      }
-      
-      setApiError(errorMessage);
+      console.error(err);
+      setApiError("Failed to save data.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const getImageUrl = (imagePath: string) => {
+  const getImageUrl = (imagePath: string, updatedAt?: string) => {
     if (!imagePath) return '';
-    if (imagePath.startsWith('http')) return imagePath;
-    if (imagePath.startsWith('storage/')) return `${API_URL}/${imagePath}`;
-    return `${API_URL}/storage/${imagePath}`;
+    let basePath = imagePath.startsWith('http')
+      ? imagePath
+      : imagePath.startsWith('storage/')
+        ? `${API_URL}/${imagePath}`
+        : `${API_URL}/storage/${imagePath}`;
+    basePath += `?v=${updatedAt ? new Date(updatedAt).getTime() : Date.now()}`;
+    return basePath;
   };
 
   return (
@@ -205,7 +165,7 @@ const AboutSection: React.FC<AboutSectionProps> = ({
 
                 {about.image && (
                   <img
-                    src={getImageUrl(about.image)}
+                    src={getImageUrl(about.image, (about as any).updated_at)}
                     alt={about.title}
                     className="w-full h-48 object-cover rounded-lg mb-4"
                     onError={(e) => {

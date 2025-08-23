@@ -17,7 +17,6 @@ export interface Service {
   title: string;
   short_description: string;
   long_description: string;
-
   features?: string[];
 }
 
@@ -54,15 +53,17 @@ export interface ContentData {
   contact: Contact;
   contactForm: ContactForm;
 }
+
 export interface SiteSetting {
   id?: number;
   logo_url?: string;
-  logo_file?: File | null; // For form submissions
-  menu_items: { label: string }[]; // Only label required
+  logo_file?: File | null;
+  menu_items: { label: string }[];
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }
+
 export interface Header {
   id?: number;
   logo_path?: string;
@@ -70,6 +71,7 @@ export interface Header {
   created_at?: string;
   updated_at?: string;
 }
+
 export interface ContactSubmission {
   id: string;
   first_name: string;
@@ -80,6 +82,7 @@ export interface ContactSubmission {
   created_at: string;
   updated_at: string;
 }
+
 export interface FooterData {
   id?: number;
   title: string;
@@ -96,6 +99,7 @@ export interface FooterData {
   pinterest_url: string;
   linkedin_url: string;
 }
+
 export interface PrivacyPolicy {
   id?: number;
   title: string;
@@ -112,14 +116,16 @@ export interface PrivacyPolicyFormData {
   content: string;
   is_active?: boolean;
 }
+
 export interface Term {
-    id?: number;
-    title: string;
-    content: string;
-    status: 'active' | 'inactive';
-    created_at?: string;
-    updated_at?: string;
+  id?: number;
+  title: string;
+  content: string;
+  status: 'active' | 'inactive';
+  created_at?: string;
+  updated_at?: string;
 }
+
 export interface Disclaimer {
   id?: number;
   title: string;
